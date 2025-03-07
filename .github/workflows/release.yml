@@ -58,73 +58,35 @@ jobs:
           args: --release --target ${{ matrix.target }}
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.asset_name }}
           path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
   
-  create-release:
-    name: Create Release
+  release:
+    name: Create Release and Upload Assets
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          path: artifacts
+      
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/systemd-language-server-linux-amd64/systemd-language-server
+            artifacts/systemd-language-server-linux-arm64/systemd-language-server
+            artifacts/systemd-language-server-macos-amd64/systemd-language-server
+            artifacts/systemd-language-server-macos-arm64/systemd-language-server
+            artifacts/systemd-language-server-windows-amd64.exe/systemd-language-server.exe
+          name: Release ${{ github.ref_name }}
           draft: false
-          prerelease: false
-      
-      - name: Save Release URL
-        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
-      
-      - name: Upload Release URL
-        uses: actions/upload-artifact@v3
-        with:
-          name: release_url
-          path: release_url.txt
-
-  upload-assets:
-    name: Upload ${{ matrix.asset_name }}
-    needs: create-release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - asset_name: systemd-language-server-linux-amd64
-          - asset_name: systemd-language-server-linux-arm64
-          - asset_name: systemd-language-server-macos-amd64
-          - asset_name: systemd-language-server-macos-arm64
-          - asset_name: systemd-language-server-windows-amd64.exe
-    
-    steps:
-      - name: Download Release URL
-        uses: actions/download-artifact@v3
-        with:
-          name: release_url
-      
-      - name: Get Release URL
-        id: get_release_url
-        run: echo "::set-output name=url::$(cat release_url.txt)"
-      
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ matrix.asset_name }}
-      
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release_url.outputs.url }}
-          asset_path: ./${{ matrix.asset_name }}
-          asset_name: ${{ matrix.asset_name }}
-          asset_content_type: application/octet-stream 
+          prerelease: false 

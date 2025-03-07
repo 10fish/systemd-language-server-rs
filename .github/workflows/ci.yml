@@ -75,11 +75,7 @@ jobs:
           override: true
       
       - name: Install cargo-tarpaulin
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-tarpaulin
-          version: latest
-          use-tool-cache: true
+        run: cargo install cargo-tarpaulin
       
       - name: Run cargo-tarpaulin
         uses: actions-rs/cargo@v1
@@ -88,7 +84,6 @@ jobs:
           args: --out Xml --verbose
       
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true 
