@@ -1,0 +1,18 @@
+[Unit]
+Description=Example Systemd Service
+Documentation=https://example.com/docs
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/example-service --config=/etc/example/config.conf
+ExecStop=/usr/bin/example-service --stop
+Restart=on-failure
+RestartSec=5
+User=nobody
+Group=nogroup
+WorkingDirectory=/var/lib/example
+
+[Install]
+WantedBy=multi-user.target 
