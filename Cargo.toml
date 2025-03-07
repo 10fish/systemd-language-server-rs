@@ -2,6 +2,13 @@
 name = "systemd-language-server"
 version = "0.1.0"
 edition = "2024"
+description = "A Rust and Language Server Protocol (LSP) based language server for systemd unit files"
+license = "MIT"
+authors = ["10fish <jokefish@live.com>"]
+repository = "https://github.com/10fish/systemd-language-server"
+keywords = ["systemd", "language", "server", "lsp"]
+readme = "README.md"
+
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
