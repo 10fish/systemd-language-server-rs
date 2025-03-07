@@ -1,4 +1,3 @@
-use env_logger;
 use log::info;
 use std::error::Error;
 use systemd_language_server::Backend;
@@ -16,7 +15,7 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let stdout = stdout();
 
     // Create LSP service
-    let (service, socket) = LspService::new(|client| Backend::new(client));
+    let (service, socket) = LspService::new(Backend::new);
 
     // Start server
     info!("Systemd Language Server started, waiting for client connection...");
