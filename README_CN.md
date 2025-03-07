@@ -3,7 +3,7 @@
 [English🇺🇸](README.md) | [简体中文🇨🇳](README_CN.md)
 
 [![Crates.io](https://img.shields.io/crates/v/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
-[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/Rust/badge.svg)](https://github.com/10fish/systemd-language-server-rs/actions)
+[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/CI/badge.svg)](https://github.com/10fish/systemd-language-server-rs/actions)
 [![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/10fish/systemd-language-server-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/crates/d/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
@@ -21,6 +21,10 @@
 - 悬停提示文档
 
 ## 安装
+
+### 预编译二进制文件
+
+您可以从 [GitHub Releases](https://github.com/10fish/systemd-language-server-rs/releases) 页面下载适用于各种平台的预编译二进制文件。
 
 ### 从源码构建
 
@@ -129,6 +133,24 @@ cargo test --test systemd_unit_tests
 ```bash
 cargo test -- --nocapture
 ```
+
+### 持续集成与部署
+
+本项目使用 GitHub Actions 进行持续集成和部署：
+
+- **CI 工作流**：在每次推送和拉取请求时运行测试、代码检查和代码覆盖率分析
+- **发布工作流**：当推送新标签时，自动构建并发布多平台二进制文件
+
+创建新版本发布的步骤：
+
+1. 更新 `Cargo.toml` 中的版本号
+2. 提交更改
+3. 创建并推送新标签：
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+4. GitHub Actions 工作流将自动构建并发布该版本
 
 ## 贡献指南
 

@@ -3,12 +3,12 @@
 [English🇺🇸](README.md) | [简体中文🇨🇳](README_CN.md)
 
 [![Crates.io](https://img.shields.io/crates/v/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
-[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/Rust/badge.svg)](https://github.com/10fish/systemd-language-server-rs/actions)
-[![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/10fish/systemd-language-server-rs)
+[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/CI/badge.svg)](https://github.com/yourusername/systemd-language-server-rs/actions)
+[![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/systemd-language-server-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/crates/d/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org/)
-[![dependency status](https://deps.rs/repo/github/10fish/systemd-language-server-rs/status.svg)](https://deps.rs/repo/github/10fish/systemd-language-server-rs)
+[![dependency status](https://deps.rs/repo/github/10fish/systemd-language-server-rs/status.svg)](https://deps.rs/repo/github/yourusername/systemd-language-server-rs)
 
 A Rust and Language Server Protocol (LSP) based language server for systemd unit files, providing syntax highlighting, auto-completion, error checking, and more.
 
@@ -21,6 +21,10 @@ A Rust and Language Server Protocol (LSP) based language server for systemd unit
 - Hover documentation tooltips
 
 ## Installation
+
+### Pre-built Binaries
+
+You can download pre-built binaries for various platforms from the [GitHub Releases](https://github.com/yourusername/systemd-language-server-rs/releases) page.
 
 ### Building from Source
 
@@ -129,6 +133,24 @@ To run tests with detailed output:
 ```bash
 cargo test -- --nocapture
 ```
+
+### Continuous Integration and Deployment
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Workflow**: Runs tests, linting, and code coverage on every push and pull request
+- **Release Workflow**: Automatically builds and publishes binaries for multiple platforms when a new tag is pushed
+
+To create a new release:
+
+1. Update the version in `Cargo.toml`
+2. Commit the changes
+3. Create and push a new tag:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+4. The GitHub Actions workflow will automatically build and publish the release
 
 ## Contributing
 
