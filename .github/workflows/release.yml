@@ -5,9 +5,12 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Build ${{ matrix.target }}
+  build-and-release:
+    name: Build and Release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -15,35 +18,34 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: systemd-language-server
+            binary_name: systemd-language-server
             asset_name: systemd-language-server-linux-amd64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: systemd-language-server
-            asset_name: systemd-language-server-linux-arm64
+        #  not working
+        #   - os: ubuntu-latest
+        #     target: aarch64-unknown-linux-gnu
+        #     binary_name: systemd-language-server
+        #     asset_name: systemd-language-server-linux-arm64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: systemd-language-server
+            binary_name: systemd-language-server
             asset_name: systemd-language-server-macos-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: systemd-language-server
+            binary_name: systemd-language-server
             asset_name: systemd-language-server-macos-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: systemd-language-server.exe
+            binary_name: systemd-language-server.exe
             asset_name: systemd-language-server-windows-amd64.exe
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
       
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
       
       - name: Install cross-compilation tools
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -51,42 +53,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
       
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
       
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-  
-  release:
-    name: Create Release and Upload Assets
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Prepare binary
+        shell: bash
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name }}
+          else
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name }}
+            chmod +x release/${{ matrix.asset_name }}
+          fi
       
-      - name: Download all artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-      
-      - name: Create Release and Upload Assets
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/systemd-language-server-linux-amd64/systemd-language-server
-            artifacts/systemd-language-server-linux-arm64/systemd-language-server
-            artifacts/systemd-language-server-macos-amd64/systemd-language-server
-            artifacts/systemd-language-server-macos-arm64/systemd-language-server
-            artifacts/systemd-language-server-windows-amd64.exe/systemd-language-server.exe
+          files: release/${{ matrix.asset_name }}
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false 
