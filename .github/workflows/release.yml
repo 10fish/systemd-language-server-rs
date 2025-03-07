@@ -19,7 +19,8 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_name: systemd-language-server
-            asset_name: systemd-language-server-linux-amd64
+            asset_name_short: systemd-language-server
+            asset_name: systemd-language-server-linux-amd64.tar.gz
         #  not working
         #   - os: ubuntu-latest
         #     target: aarch64-unknown-linux-gnu
@@ -28,15 +29,18 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             binary_name: systemd-language-server
-            asset_name: systemd-language-server-macos-amd64
+            asset_name_short: systemd-language-server
+            asset_name: systemd-language-server-macos-amd64.tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
             binary_name: systemd-language-server
-            asset_name: systemd-language-server-macos-arm64
+            asset_name_short: systemd-language-server
+            asset_name: systemd-language-server-macos-arm64.tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: systemd-language-server.exe
-            asset_name: systemd-language-server-windows-amd64.exe
+            asset_name_short: systemd-language-server
+            asset_name: systemd-language-server-windows-amd64.zip
 
     steps:
       - name: Checkout code
@@ -59,18 +63,48 @@ jobs:
       - name: Prepare binary
         shell: bash
         run: |
-          mkdir -p release
+          mkdir -p release/${{ matrix.asset_name_short }}-${{ github.ref_name }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name }}
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
           else
-            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name }}
-            chmod +x release/${{ matrix.asset_name }}
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
+            chmod +x release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
+          fi
+      
+      - name: Install compression tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gzip xz-utils zip
+      
+      - name: Install compression tools (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install xz
+      
+      - name: Compress binaries
+        shell: bash
+        run: |
+          cd release
+
+          # Create .zip archive
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            powershell Compress-Archive -Path ${{ matrix.asset_name_short }}-${{ github.ref_name }} -DestinationPath ${{ matrix.asset_name }}
+          else
+            zip ${{ matrix.asset_name }} ${{ matrix.asset_name_short }}-${{ github.ref_name }}
+          fi
+          
+          # Create .tar.gz archive (not for Windows)
+          if [ "${{ matrix.os }}" != "windows-latest" ]; then
+            tar -czf ${{ matrix.asset_name }} ${{ matrix.asset_name_short }}-${{ github.ref_name }}
           fi
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/${{ matrix.asset_name }}
+          files: |
+            release/${{ matrix.asset_name }}
+            release/${{ matrix.asset_name }}
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false 
