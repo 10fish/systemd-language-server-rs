@@ -497,7 +497,7 @@ impl LanguageServer for Backend {
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         info!("File changed: {:?}", params.text_document.uri);
 
-        if let Some(change) = params.content_changes.get(0) {
+        if let Some(change) = params.content_changes.first() {
             // Update document content
             let mut documents = self.documents.clone();
             documents.insert(params.text_document.uri.clone(), change.text.clone());
