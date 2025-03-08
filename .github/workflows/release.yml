@@ -65,10 +65,10 @@ jobs:
         run: |
           mkdir -p release/${{ matrix.asset_name_short }}-${{ github.ref_name }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/
           else
-            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
-            chmod +x release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
+            cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/
+            chmod +rx release/${{ matrix.asset_name_short }}-${{ github.ref_name }}/${{ matrix.binary_name }}
           fi
       
       - name: Install compression tools (Linux)
@@ -104,7 +104,6 @@ jobs:
         with:
           files: |
             release/${{ matrix.asset_name }}
-            release/${{ matrix.asset_name }}
           name: Release ${{ github.ref_name }}
           draft: false
-          prerelease: false 
+          prerelease: false
