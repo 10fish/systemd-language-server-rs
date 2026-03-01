@@ -15,4 +15,4 @@ Group=nogroup
 WorkingDirectory=/var/lib/example
 
 [Install]
-WantedBy=multi-user.target 
+WantedBy=multi-user.target

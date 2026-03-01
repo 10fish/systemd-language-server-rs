@@ -1,9 +1,13 @@
+use file::SYSTEMD_UNIT_TYPES;
+use file::Sytax;
 use ini::configparser::ini::Ini;
 use log::info;
 use std::collections::HashMap;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
+
+mod file;
 
 pub struct Backend {
     client: Client,
@@ -29,12 +33,13 @@ impl Backend {
     }
 
     // Generate diagnostics
-    fn generate_diagnostics(&self, content: &str) -> Vec<Diagnostic> {
+    fn generate_diagnostics(&self, content: &str, uri: &str) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         match self.parse_unit_file(content) {
-            Ok(_) => {
-                // File format is correct, no diagnostics needed
+            Ok(ini) => {
+                let extension = uri.split(".").last();
+                self.check_extension_specific_errors(&ini, extension, &mut diagnostics);
             }
             Err(e) => {
                 // Add syntax error diagnostic
@@ -46,7 +51,7 @@ impl Backend {
                     severity: Some(DiagnosticSeverity::ERROR),
                     code: None,
                     code_description: None,
-                    source: Some("systemd-lsp".into()),
+                    source: Some("systemd-language-server".into()),
                     message: format!("Systemd unit file syntax error: {}", e),
                     related_information: None,
                     tags: None,
@@ -62,7 +67,90 @@ impl Backend {
         diagnostics
     }
 
-    // Check for common systemd configuration errors
+    fn check_keys_mandatory(keys: &Vec<&str>, required: &Vec<&str>) -> Vec<String> {
+        let mut errors = Vec::new();
+        for k in required {
+            if !keys.contains(k) {
+                errors.push(format!("mandatory Section/Key not contained: {k}"));
+            }
+        }
+        errors
+    }
+
+    fn check_keys_conflict(keys: &Vec<&str>, permits: &Vec<&str>) -> Vec<String> {
+        let mut errors = Vec::new();
+        for k in keys {
+            if !permits.contains(k) {
+                errors.push(format!("Section/Key not permitted: {k}"));
+            }
+        }
+        errors
+    }
+
+    /// check for extension specific errors
+    fn check_extension_specific_errors(
+        &self,
+        ini: &Ini,
+        extension: Option<&str>,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        let extension = extension.unwrap_or("unit");
+        let unit = SYSTEMD_UNIT_TYPES
+            .get(extension)
+            .unwrap_or(SYSTEMD_UNIT_TYPES.get("unit").unwrap());
+
+        let required: Vec<&str> = unit.required(Sytax::SectionName).to_vec();
+        let permits: Vec<&str> = unit.permits(Sytax::SectionName).to_vec();
+        let section_names: Vec<&str> = ini.get_map_ref().keys().map(|s| s.as_str()).collect();
+
+        let mut errors = Self::check_keys_mandatory(&section_names, &required);
+        errors.extend(Self::check_keys_conflict(&section_names, &permits));
+        for e in errors {
+            let diagnostic = Diagnostic {
+                // TODO: position
+                range: Range {
+                    start: Position::new(0, 0),
+                    end: Position::new(0, 1),
+                },
+                severity: Some(DiagnosticSeverity::ERROR),
+                code: None,
+                code_description: None,
+                source: Some("systemd-language-server".into()),
+                message: format!("Systemd unit type {} error: {}", extension, e),
+                related_information: None,
+                tags: None,
+                data: None,
+            };
+            diagnostics.push(diagnostic);
+        }
+        for (name, section) in ini.get_map_ref() {
+            let section_keys: Vec<&str> = section.keys().map(|s| s.as_str()).collect();
+            let required: Vec<&str> = unit.required(Sytax::DirectiveKey(name)).to_vec();
+            let permits: Vec<&str> = unit.permits(Sytax::DirectiveKey(name)).to_vec();
+            let mut errors = Self::check_keys_mandatory(&section_keys, &required);
+            errors.extend(Self::check_keys_conflict(&section_keys, &permits));
+            for e in errors {
+                let diagnostic = Diagnostic {
+                    // TODO: position
+                    range: Range {
+                        start: Position::new(0, 0),
+                        end: Position::new(0, 1),
+                    },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    code: None,
+                    code_description: None,
+                    source: Some("systemd-language-server".into()),
+                    message: format!("Systemd unit file section {} error: {}", name, e),
+                    related_information: None,
+                    tags: None,
+                    data: None,
+                };
+                diagnostics.push(diagnostic);
+            }
+        }
+    }
+
+    /// Check for common systemd configuration errors
     fn check_common_errors(&self, content: &str, diagnostics: &mut Vec<Diagnostic>) {
         let lines: Vec<&str> = content.lines().collect();
 
@@ -86,47 +174,9 @@ impl Backend {
                             },
                             severity: Some(DiagnosticSeverity::WARNING),
                             message: format!("Key '{}' has an empty value", key),
-                            source: Some("systemd-lsp".into()),
+                            source: Some("systemd-language-server".into()),
                             ..Default::default()
                         });
-                    }
-
-                    // Check for common configuration errors
-                    match key {
-                        "ExecStart" => {
-                            if !value.starts_with('/') && !value.starts_with('-') {
-                                diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position::new(line_num, 0),
-                                        end: Position::new(line_num, line.len() as u32),
-                                    },
-                                    severity: Some(DiagnosticSeverity::WARNING),
-                                    message: "ExecStart should use absolute paths".to_string(),
-                                    source: Some("systemd-lsp".into()),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                        "Type" => {
-                            let valid_types =
-                                ["simple", "forking", "oneshot", "dbus", "notify", "idle"];
-                            if !valid_types.contains(&value) {
-                                diagnostics.push(Diagnostic {
-                                    range: Range {
-                                        start: Position::new(line_num, 0),
-                                        end: Position::new(line_num, line.len() as u32),
-                                    },
-                                    severity: Some(DiagnosticSeverity::ERROR),
-                                    message: format!(
-                                        "Invalid service type: '{}'. Valid types: {:?}",
-                                        value, valid_types
-                                    ),
-                                    source: Some("systemd-lsp".into()),
-                                    ..Default::default()
-                                });
-                            }
-                        }
-                        _ => {}
                     }
                 }
             }
@@ -486,7 +536,10 @@ impl LanguageServer for Backend {
         );
 
         // Generate diagnostics
-        let diagnostics = self.generate_diagnostics(&params.text_document.text);
+        let diagnostics = self.generate_diagnostics(
+            &params.text_document.text,
+            params.text_document.uri.as_str(),
+        );
 
         // Publish diagnostics
         self.client
@@ -503,7 +556,8 @@ impl LanguageServer for Backend {
             documents.insert(params.text_document.uri.clone(), change.text.clone());
 
             // Generate diagnostics
-            let diagnostics = self.generate_diagnostics(&change.text);
+            let diagnostics =
+                self.generate_diagnostics(&change.text, params.text_document.uri.as_str());
 
             // Publish diagnostics
             self.client
