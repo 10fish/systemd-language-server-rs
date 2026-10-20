@@ -7,18 +7,20 @@
 [![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/10fish/systemd-language-server-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/crates/d/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org/)
+[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-blue.svg)](https://www.rust-lang.org/)
 [![dependency status](https://deps.rs/repo/github/10fish/systemd-language-server-rs/status.svg)](https://deps.rs/repo/github/10fish/systemd-language-server-rs)
 
-一个基于 Rust 和 Language Server Protocol (LSP) 的 systemd unit 文件语言服务器，提供语法高亮、自动补全、错误检查等功能。
+一个处于 pre-alpha 阶段、使用 Rust 编写的 systemd unit 文件语言服务器。
 
 ## 功能特性
 
-- 支持 systemd unit 文件的语法高亮
-- 提供智能自动补全建议
-- 实时语法错误检查
-- 支持跳转到定义
-- 悬停提示文档
+- 带版本检查的全文文档同步
+- 带准确 UTF-16 范围的语法和 section 诊断
+- section、directive 和部分枚举值补全
+- 常见 section 和 directive 的悬停文档
+- 识别常见 unit 类型和 `.d/*.conf` drop-in
+
+跳转到定义、运行时配置和 semantic highlighting 尚未实现。TextMate 语法高亮由编辑器扩展提供。
 
 ## 安装
 
@@ -56,41 +58,29 @@ systemd-language-server
 
 #### VS Code
 
-1. 安装 [vscode-languageclient](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-languageserver-node-example) 扩展
-2. 在设置中配置 systemd-language-server 的路径
+目前还没有官方 VS Code 扩展。可以通过支持配置任意 stdio language server 的扩展或客户端启动本服务。
 
 #### Neovim
 
-使用 [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) 配置：
+在 systemd 文件 buffer 中使用 Neovim 内置 LSP 客户端启动：
 
 ```lua
-require'lspconfig'.systemd_ls.setup{
+vim.lsp.start({
+  name = "systemd-language-server",
   cmd = { "systemd-language-server" },
-  filetypes = { "systemd" },
-  root_dir = function() return vim.loop.cwd() end
-}
+  root_dir = vim.fn.getcwd(),
+})
 ```
 
-## 配置选项
+## 配置
 
-在 `.systemd-ls.json` 文件中可以配置以下选项：
-
-```json
-{
-  "systemd": {
-    "unitSearchPaths": ["/etc/systemd/system", "/usr/lib/systemd/system"],
-    "diagnostics": {
-      "enabled": true
-    }
-  }
-}
-```
+当前 pre-alpha 版本尚未实现运行时配置。
 
 ## 开发
 
 ### 依赖项
 
-- Rust 1.70+
+- Rust 1.85+（edition 2024）
 - tokio 异步运行时
 - tower-lsp 库
 
@@ -120,7 +110,7 @@ cargo clippy
 
 #### 集成测试
 
-`tests/integration_tests.rs` 中包含一个简化版的集成测试。这是一个占位测试，可以在将来需要时进行扩展。
+`tests/integration_tests.rs` 通过 JSON-RPC 驱动服务端，覆盖文档打开、修改、关闭、诊断、补全和悬停。
 
 运行特定测试：
 
@@ -167,4 +157,4 @@ cargo test -- --nocapture
 ## 致谢
 
 - [tower-lsp](https://github.com/ebkalderon/tower-lsp) - Rust 的 LSP 实现
-- [systemd](https://systemd.io/) - 提供了 unit 文件规范 
+- [systemd](https://systemd.io/) - 提供了 unit 文件规范

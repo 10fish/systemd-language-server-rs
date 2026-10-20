@@ -3,28 +3,30 @@
 [English🇺🇸](README.md) | [简体中文🇨🇳](README_CN.md)
 
 [![Crates.io](https://img.shields.io/crates/v/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
-[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/CI/badge.svg)](https://github.com/yourusername/systemd-language-server-rs/actions)
-[![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/systemd-language-server-rs)
+[![Build Status](https://github.com/10fish/systemd-language-server-rs/workflows/CI/badge.svg)](https://github.com/10fish/systemd-language-server-rs/actions)
+[![codecov](https://codecov.io/gh/10fish/systemd-language-server-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/10fish/systemd-language-server-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/crates/d/systemd-language-server.svg)](https://crates.io/crates/systemd-language-server)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org/)
-[![dependency status](https://deps.rs/repo/github/10fish/systemd-language-server-rs/status.svg)](https://deps.rs/repo/github/yourusername/systemd-language-server-rs)
+[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-blue.svg)](https://www.rust-lang.org/)
+[![dependency status](https://deps.rs/repo/github/10fish/systemd-language-server-rs/status.svg)](https://deps.rs/repo/github/10fish/systemd-language-server-rs)
 
-A Rust and Language Server Protocol (LSP) based language server for systemd unit files, providing syntax highlighting, auto-completion, error checking, and more.
+A pre-alpha Rust language server for systemd unit files.
 
 ## Features
 
-- Syntax highlighting for systemd unit files
-- Intelligent auto-completion suggestions
-- Real-time syntax error checking
-- Support for jumping to definitions
-- Hover documentation tooltips
+- Full-document synchronization with version tracking
+- Syntax and section diagnostics with accurate UTF-16 ranges
+- Section, directive, and selected value completions
+- Hover documentation for common sections and directives
+- Recognition of common unit types and `.d/*.conf` drop-ins
+
+Go-to-definition, runtime configuration, and semantic highlighting are planned but are not implemented yet. TextMate syntax highlighting remains the responsibility of the editor extension.
 
 ## Installation
 
 ### Pre-built Binaries
 
-You can download pre-built binaries for various platforms from the [GitHub Releases](https://github.com/yourusername/systemd-language-server-rs/releases) page.
+You can download pre-built binaries for various platforms from the [GitHub Releases](https://github.com/10fish/systemd-language-server-rs/releases) page.
 
 ### Building from Source
 
@@ -56,41 +58,29 @@ systemd-language-server
 
 #### VS Code
 
-1. Install the [vscode-languageclient](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-languageserver-node-example) extension
-2. Configure the systemd-language-server path in settings
+An official VS Code extension is not available yet. The server can be used through an extension or client that supports configuring an arbitrary stdio language server.
 
 #### Neovim
 
-Use [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) configuration:
+Start the server from a systemd file buffer with Neovim's built-in LSP client:
 
 ```lua
-require'lspconfig'.systemd_ls.setup{
+vim.lsp.start({
+  name = "systemd-language-server",
   cmd = { "systemd-language-server" },
-  filetypes = { "systemd" },
-  root_dir = function() return vim.loop.cwd() end
-}
+  root_dir = vim.fn.getcwd(),
+})
 ```
 
-## Configuration Options
+## Configuration
 
-You can configure the following options in the `.systemd-ls.json` file:
-
-```json
-{
-  "systemd": {
-    "unitSearchPaths": ["/etc/systemd/system", "/usr/lib/systemd/system"],
-    "diagnostics": {
-      "enabled": true
-    }
-  }
-}
-```
+Runtime configuration is not implemented in the current pre-alpha release.
 
 ## Development
 
 ### Dependencies
 
-- Rust 1.70+
+- Rust 1.85+ (edition 2024)
 - tokio async runtime
 - tower-lsp library
 
@@ -120,7 +110,7 @@ Unit tests verify the core functionality of parsing and validating systemd unit 
 
 #### Integration Tests
 
-A simplified integration test is included in `tests/integration_tests.rs`. This serves as a placeholder and can be expanded in the future when needed.
+`tests/integration_tests.rs` drives the server through JSON-RPC and covers document open/change/close, diagnostics, completion, and hover.
 
 To run a specific test:
 
